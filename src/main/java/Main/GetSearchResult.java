@@ -23,7 +23,6 @@ class GetSearchResult {
     private Date begin;
     private Date end;
 
-
     GetSearchResult(Twitter twitter, String[] queries, String dirName, Date begin, Date end) {
         this.twitter = twitter;
         this.queries = queries;
@@ -33,12 +32,21 @@ class GetSearchResult {
         logger("INFO", "START_SEARCHING", "yuyu-crawler is started." + begin + " to " + end);
     }
 
+    /**
+     * ログ出力（標準出力）
+     * @param type ファシリティ
+     * @param title メッセージの種類
+     * @param message メッセージ本文
+     */
     private void logger(String type, String title, String message) {
         Calendar calendar = Calendar.getInstance(TimeZone.getTimeZone("Asia/Tokyo"));
         System.out.println(calendar.getTime() + " [" + type + "]" + " [" + title + "] " + message);
     }
 
-
+    /**
+     * 引数として渡されたAPIリミットのCheckを行い、残数が少なかった場合はsleepする
+     * @param rateLimit 指定サれたエンドポイントのステータス
+     */
     private void checkAndSleep(RateLimitStatus rateLimit) {
         logger("INFO", "CHECK_RATE_LIMIT", String.valueOf(rateLimit.getRemaining()));
         if (rateLimit.getRemaining() < 5) {
@@ -53,6 +61,11 @@ class GetSearchResult {
     }
 
 
+    /**
+     * 引数として渡されたツイートデータをファイルに出力する
+     * @param status ツイートデータ
+     * @throws IOException
+     */
     private void storeStatus(Status status) throws IOException {
         String rawJSON = TwitterObjectFactory.getRawJSON(status);
         if (null != rawJSON) {
@@ -67,7 +80,11 @@ class GetSearchResult {
 
     }
 
-
+    /**
+     * ツイートを取得する
+     * @throws TwitterException
+     * @throws IOException
+     */
     void readSearchResult() throws TwitterException, IOException {
 
         QueryResult result;
@@ -84,6 +101,7 @@ class GetSearchResult {
                 tweetList = result.getTweets();
                 logger("INFO", "NUMBER_OF_TWEET", "Getting " + tweetList.size() + " tweets");
 
+                // 取得範囲に含まれているツイートを永続化する
                 for (Status s : tweetList) {
                     Date date = s.getCreatedAt();
                     if (containsCheck(s.getText()) && date.after(this.begin) && date.before(this.end)) {
@@ -99,10 +117,12 @@ class GetSearchResult {
 
             } while ((query = result.nextQuery()) != null);
 
+            // 取得範囲（起点）より古いツイートまで取得できたらループを抜ける
             if (this.begin.getTime() > timeQueue.peek()) {
                 break;
             }
 
+            // ツイートの取得漏れ対策のために、既に取得したツイートのうち最古のツイートのIDをMAXIDとして再度検索を実施
             generateQuery();
             improveQuery(q.peek());
 
@@ -112,6 +132,11 @@ class GetSearchResult {
 
     }
 
+    /**
+     * ツイート本文にキーワードが部分一致しているか確認する
+     * @param text Checkしたいツイート本文
+     * @return
+     */
     private boolean containsCheck(String text) {
         for (String q : queries) {
             if (text.contains(q)) {
@@ -121,11 +146,18 @@ class GetSearchResult {
         return false;
     }
 
+    /**
+     * MAXIDの指定の更新
+     * @param id 指定したいID
+     */
     private void improveQuery(long id) {
         logger("INFO", "IMPROVES_QUERY", "Set maxid=" + id);
         this.query.setMaxId(id);
     }
 
+    /**
+     * クエリの生成
+     */
     void generateQuery() {
         this.query = new Query();
         StringBuilder sb = new StringBuilder();
@@ -139,8 +171,5 @@ class GetSearchResult {
         }
         this.query.setCount(100);
         this.query.setQuery(sb.toString());
-
     }
-
-
 }
