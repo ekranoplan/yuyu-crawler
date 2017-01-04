@@ -49,7 +49,7 @@ class GetSearchResult {
      */
     private void checkAndSleep(RateLimitStatus rateLimit) {
         logger("INFO", "CHECK_RATE_LIMIT", String.valueOf(rateLimit.getRemaining()));
-        if (rateLimit.getRemaining() < 5) {
+        if (rateLimit.getRemaining() < 3) {
             long l = rateLimit.getSecondsUntilReset();
             logger("INFO", "SEARCH_API_LIMIT", "SLEEP: " + l + " sec.");
             try {
