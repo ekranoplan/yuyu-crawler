@@ -91,8 +91,11 @@ class GetSearchResult {
         List<Status> tweetList;
         Queue<Long> timeQueue = new PriorityQueue<>();
 
-        while (true) {
+        boolean loop =true;
+
+        do {
             Queue<Long> q = new PriorityQueue<>();
+
             do {
                 RateLimit rateLimit = new RateLimit(twitter, "/search/tweets");
                 checkAndSleep(rateLimit.getRateLimit());
@@ -112,21 +115,18 @@ class GetSearchResult {
                 }
 
                 if (this.begin.getTime() > timeQueue.peek()) {
+                    loop=false;
                     break;
                 }
 
             } while ((query = result.nextQuery()) != null);
 
-            // 取得範囲（起点）より古いツイートまで取得できたらループを抜ける
-            if (this.begin.getTime() > timeQueue.peek()) {
-                break;
-            }
-
             // ツイートの取得漏れ対策のために、既に取得したツイートのうち最古のツイートのIDをMAXIDとして再度検索を実施
             generateQuery();
             improveQuery(q.peek());
 
-        }
+        }while (loop);
+
         logger("INFO", "FINISH_SEARCHING", "yuyu-crawler is stopped.");
 
 
